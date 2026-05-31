@@ -1,0 +1,825 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>정선우 · HUDSON</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --panel: #121212;
+      --panel-alt: #1a1a1a;
+      --border: #3a3a3a;
+      --border-light: #525252;
+      --text: #ececec;
+      --muted: #9a9a9a;
+      --accent: #ffffff;
+      --accent-dim: #1e1e1e;
+      --stamp: #f0f0f0;
+      --highlight: #ffffff;
+      --redact: #141414;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "pretendard", "pretendard", sans-serif;
+      background: #1c1c1c;
+      color: var(--text);
+      line-height: 1.55;
+      padding: 2rem 1rem 3rem;
+      font-size: 13px;
+    }
+
+    .doc-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      margin: 0 auto;
+    }
+
+    .a4-page {
+      width: 210mm;
+      height: 297mm;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.35),
+        0 12px 32px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .page-inner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .doc-header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 3px solid var(--accent);
+      background: linear-gradient(180deg, #1a1a1a 0%, var(--panel) 100%);
+    }
+
+    .org-block .org {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .org-block h1 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      margin-top: 0.35rem;
+      letter-spacing: -0.02em;
+    }
+
+    .org-block .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    .classify {
+      text-align: right;
+      font-size: 11px;
+      align-self: start;
+    }
+
+    .classify .level {
+      display: inline-block;
+      border: 2px solid var(--stamp);
+      color: var(--stamp);
+      padding: 0.2rem 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      transform: rotate(-2deg);
+    }
+
+    .classify .ref {
+      margin-top: 0.5rem;
+      color: var(--muted);
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 10px;
+    }
+
+    .banner {
+      padding: 0.85rem 1.5rem;
+      background: var(--accent-dim);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .banner-grid {
+      display: grid;
+      grid-template-columns: 4.75rem minmax(0, 1fr) 3.25rem minmax(0, 1fr);
+      column-gap: 1rem;
+      row-gap: 0.55rem;
+      align-items: baseline;
+    }
+
+    .banner-item {
+      display: contents;
+    }
+
+    .banner-label {
+      color: var(--muted);
+      white-space: nowrap;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+    }
+
+    .banner-value {
+      color: var(--highlight);
+      font-weight: 600;
+      line-height: 1.4;
+      padding-right: 0.5rem;
+    }
+
+    @media (max-width: 560px) {
+      .banner-grid {
+        grid-template-columns: 4.75rem minmax(0, 1fr);
+      }
+    }
+
+    .doc-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 188px 1fr;
+      align-items: stretch;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      padding: 1rem 0.85rem;
+      border-right: 1px solid var(--border);
+      background: var(--panel-alt);
+      overflow: hidden;
+      font-size: 12px;
+    }
+
+    .a4-page--2 .sidebar {
+      padding-top: 1.15rem;
+    }
+
+    .page-ribbon {
+      padding: 0.35rem 1.25rem;
+      background: var(--accent-dim);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      flex-shrink: 0;
+    }
+
+    .page-ribbon strong {
+      color: var(--highlight);
+      font-weight: 600;
+    }
+
+    .photo {
+      aspect-ratio: 3/4;
+      background: #080808;
+      border: 1px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .callsign {
+      font-family: "Consolas", monospace;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .sidebar dl { font-size: 12px; }
+    .sidebar dt {
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.65rem;
+    }
+    .sidebar dt:first-child { margin-top: 0; }
+    .sidebar dd { margin-top: 0.15rem; }
+
+    .sidebar-block {
+      margin-bottom: 0.85rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-block:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .sidebar-block h3 {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+      font-weight: 700;
+    }
+
+    .sidebar-block p,
+    .sidebar-block li {
+      font-size: 10px;
+      line-height: 1.45;
+      color: #c8c8c8;
+    }
+
+    .sidebar-block ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .sidebar-block li {
+      position: relative;
+      padding-left: 0.65rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .sidebar-block li::before {
+      content: "·";
+      position: absolute;
+      left: 0;
+      color: var(--muted);
+    }
+
+    .sidebar-block li.do::before { content: "+"; color: var(--text); }
+    .sidebar-block li.dont::before { content: "−"; color: var(--muted); }
+
+    .sidebar-block .sub {
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    .file-stamp {
+      margin-top: 0.5rem;
+      padding: 0.45rem 0.4rem;
+      border: 1px dashed var(--border);
+      text-align: center;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 8px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      line-height: 1.5;
+    }
+
+    .sig-line {
+      margin-top: 0.5rem;
+      border-top: 1px solid var(--border-light);
+      padding-top: 0.35rem;
+      font-size: 8px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .main {
+      padding: 1rem 1.25rem 0.75rem;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .a4-page--2 .main {
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 0.5rem;
+    }
+
+    .a4-page--2 .main section:last-child {
+      margin-bottom: 0;
+    }
+
+    section { margin-bottom: 0.95rem; }
+    section:last-child { margin-bottom: 0; }
+
+    h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.35rem;
+      margin-bottom: 0.75rem;
+      font-weight: 700;
+    }
+
+    .summary {
+      font-size: 13px;
+      color: #d0d0d0;
+      border-left: 3px solid var(--accent);
+      padding-left: 0.85rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .tagline {
+      font-style: italic;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 0.5rem;
+    }
+
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    table.data th,
+    table.data td {
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.6rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    table.data th {
+      width: 28%;
+      background: var(--panel-alt);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .timeline { list-style: none; }
+    .timeline li {
+      position: relative;
+      padding-left: 1rem;
+      margin-bottom: 0.85rem;
+      font-size: 13px;
+    }
+    .timeline li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.45rem;
+      width: 5px;
+      height: 5px;
+      background: var(--border-light);
+      border-radius: 50%;
+    }
+    .timeline .period {
+      font-family: "Consolas", monospace;
+      font-size: 11px;
+      color: var(--highlight);
+      display: block;
+      margin-bottom: 0.15rem;
+    }
+    .timeline .role { font-weight: 600; }
+    .timeline .detail {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 0.2rem;
+    }
+
+    .skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .skills span {
+      font-size: 11px;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid var(--border);
+      background: var(--panel-alt);
+      color: #c4c4c4;
+    }
+
+    .redact {
+      background: var(--redact);
+      color: var(--redact);
+      user-select: none;
+      padding: 0 0.25rem;
+      border-radius: 2px;
+    }
+
+    .flag-group {
+      padding: 0.5rem 0.65rem;
+      background: #1a1a1a;
+      border: 1px solid var(--border-light);
+      font-size: 12px;
+    }
+
+    .flag,
+    .flag--note {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+
+    .flag::before {
+      content: "⚠";
+      color: var(--text);
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+
+    .flag--note {
+      margin-top: 0.55rem;
+      padding-top: 0.55rem;
+      border-top: 1px solid var(--border);
+      color: #c8c8c8;
+    }
+
+    .flag--note::before {
+      content: "—";
+      color: var(--muted);
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+
+    .eval {
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px dashed var(--border);
+      padding-top: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .eval q {
+      color: var(--text);
+      font-style: italic;
+    }
+
+    .doc-footer {
+      padding: 0.55rem 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 9px;
+      color: var(--muted);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+      background: var(--panel);
+      margin-top: auto;
+    }
+
+    .footer-left {
+      justify-self: start;
+      line-height: 1.35;
+    }
+
+    .footer-page {
+      justify-self: center;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 9px;
+      color: var(--text);
+      letter-spacing: 0.12em;
+      white-space: nowrap;
+    }
+
+    .footer-right {
+      justify-self: end;
+      font-family: "Consolas", monospace;
+      color: var(--stamp);
+      opacity: 0.85;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 900px) {
+      .a4-page {
+        width: 100%;
+        max-width: 210mm;
+        height: auto;
+        min-height: 297mm;
+      }
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: #fff;
+      }
+      .doc-stack {
+        gap: 0;
+      }
+      .a4-page {
+        width: 210mm;
+        height: 297mm;
+        box-shadow: none;
+        border: none;
+        page-break-after: always;
+        break-after: page;
+      }
+      .a4-page:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="doc-stack" role="document" aria-label="정선우 인원 서류">
+
+  <section class="a4-page a4-page--1" aria-label="1페이지">
+    <div class="page-inner">
+
+  <header class="doc-header">
+    <div class="org-block">
+      <p class="org">Professional Affiliator's Company</p>
+      <h1>요원 정보 · OPERATOR REPORT</h1>
+      <p class="subtitle">전문 위험 관리 및 기업 보안 · 운용 인력</p>
+    </div>
+    <div class="classify">
+      <span class="level">INTERNAL</span>
+      <p class="ref">REF: PAC-OPS-████<br />ISSUED: 2026-05</p>
+    </div>
+  </header>
+
+  <div class="banner">
+    <div class="banner-grid">
+      <div class="banner-item">
+        <span class="banner-label">현재 소속</span>
+        <strong class="banner-value">운용팀 · 과장 (Team Lead)</strong>
+      </div>
+      <div class="banner-item">
+        <span class="banner-label">콜사인</span>
+        <strong class="banner-value">HUDSON</strong>
+      </div>
+      <div class="banner-item">
+        <span class="banner-label">배치</span>
+        <strong class="banner-value">임무지 기동 (고정 거주지 확인 불가)</strong>
+      </div>
+      <div class="banner-item">
+        <span class="banner-label">상태</span>
+        <strong class="banner-value">현장 투입 가능 - 해상 임무 제외</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-body">
+
+    <aside class="sidebar">
+      <div class="photo" aria-hidden="true">[ ID PHOTO —<br />등록 생략 ]</div>
+      <p class="callsign">HUDSON</p>
+      <dl>
+        <dt>NAME</dt>
+        <dd>SEON-WOO JEONG<br /><small style="color:var(--muted)">Willow Brookes</small></dd>
+        <dt>AGE</dt>
+        <dd>31</dd>
+        <dt>SEX</dt>
+        <dd>MALE</dd>
+        <dt>NATIONALITY</dt>
+        <dd>KOREAN / AMERICAN (PERMANENT RESIDENCE)</dd>
+        <dt>HEIGHT / WEIGHT</dt>
+        <dd>189 cm / 86 kg</dd>
+        <dt>LANGUAGE</dt>
+        <dd>KOREAN / ENGLISH <br> (NATIVE LEVEL)</dd>
+        <dt>CONTACT</dt>
+        <dd>PRIVATE CONTACT - UNKNOWN</dd>
+      </dl>
+    </aside>
+
+    <div class="main">
+
+      <section>
+        <h2>Executive Summary</h2>
+        <p class="summary">
+          UDT/SEAL 8년 복무<br>
+          의가사 전역 후 P.A.C 합류 <br>
+          명목상 운용 / 기획 / 클라이언트 브리핑 담당, 분대 / 소대급 현장 지휘에 자진 투입<br>
+          해상 대테러 / 요인 회수 / 고위험 기업 보안 분야 신뢰도 높음<br>
+        </p>
+        <p class="tagline">「나는 바다에서 생명을 느꼈고, 바다에서 죽었습니다. 지금은... 지금 나는 망령일 뿐입니다.」</p>
+      </section>
+
+      <section>
+        <h2>Identity &amp; Background</h2>
+        <table class="data">
+          <tr>
+            <th>출생 및 성장</th>
+            <td>부 : 정형석(HYEONG-SEOK JEONG) <br> 모 : 파티마 브룩스(FATIMA BROOKES) <br> 출생지 : 미국 시애틀 <br> 서울 / 시애틀 교차 거주</td>
+          </tr>
+          <tr>
+            <th>외형 요약</th>
+            <td>짧은 자연 곱슬, 황갈색 피부, 좁은 눈매<br>표정 변화 적음<br>쇄골·안면 흉터<br>기능적 복장 / G-SHOCK 상시 착용</td>
+          </tr>
+          <tr>
+            <th>행동 습관</th>
+            <td>신규 공간 진입 시 출입구 / 시야 / 사각지대 / 위협 인물 우선 스캔 <br> 출입구가 보이는 자리 선호</td>
+          </tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>Service Record</h2>
+        <ul class="timeline">
+          <li>
+            <span class="period">20██ – 20██ (8년)</span>
+            <span class="role">UDT/SEAL</span>
+            <p class="detail">
+              해상 대테러 / 요인 회수, 동남아·중동·동아프리카 해역 작전 다수 수행<br>
+              4년간 분대장 역임
+            </p>
+          </li>
+          <li>
+            <span class="period">20██. ██. ██. 남중국해</span>
+            <span class="role">해상 작전 간 사고</span>
+            <p class="detail">
+              공식 기록: <span class="redact">작전 중 부상 · 의가사 전역</span>.
+              세부 경위 <span class="redact">████████</span> — 비공개
+            </p>
+          </li>
+          <li>
+            <span class="period">전역 후 2년</span>
+            <span class="role">공식 이력 공백</span>
+            <p class="detail">추정: 동남아 지역에서 소규모 보안 업무 수행</p>
+          </li>
+          <li>
+            <span class="period">합류 +3년차 · 현재</span>
+            <span class="role">P.A.C · 운용팀 과장</span>
+            <p class="detail">
+              계약 조건: 현장 투입 없음, 팀 운용 / 전략 / 브리핑.
+            </p>
+          </li>
+        </ul>
+      </section>
+
+    </div>
+  </div>
+
+  <footer class="doc-footer">
+    <span class="footer-left">본 문서는 P.A.C 내부 용도입니다. 무단 복제·유출 금지.</span>
+    <span class="footer-page" aria-label="페이지">1 / 2</span>
+    <span class="footer-right">VERIFIED · OPS DIVISION</span>
+  </footer>
+
+    </div>
+  </section>
+
+  <section class="a4-page a4-page--2" aria-label="2페이지">
+    <div class="page-inner">
+
+  <p class="page-ribbon"><strong>HUDSON</strong> · OPERATOR REPORT — <span>이어서</span></p>
+
+  <div class="doc-body">
+
+    <aside class="sidebar sidebar--ops">
+
+      <div class="sidebar-block">
+        <h3>Contact Protocol</h3>
+        <ul>
+          <li class="do">질문은 짧게 · 답을 기다릴 것</li>
+          <li class="do">거리 두고 관찰할 것</li>
+          <li class="dont">사고 / 팀원 / 물 속 경험 캐묻지 말 것</li>
+          <li class="dont">고백 / 감정 장문 위로 강요 금지</li>
+        </ul>
+        <span class="sub">관심 신호: 밥 / 약 / 동선, 옆에 앉음, 질문 하나 더</span>
+        <span class="sub">동요 시 영어 단문 증가</span>
+      </div>
+
+      <div class="sidebar-block">
+        <h3>Off-Duty Pattern</h3>
+        <ul>
+          <li>고정 거주 없음 / 임무지 이동</li>
+          <li>항만 / 연안 시야 술집 선호</li>
+          <li>구석 / 출입구 가시 / 등 비움</li>
+          <li>버번 / 얼음 없음</li>
+          <li>현지 통칭 「바다 보는 사람」</li>
+        </ul>
+      </div>
+
+      <div class="sidebar-block">
+        <h3>ROE Summary</h3>
+        <ul>
+          <li>목표 달성 우선 / 과유혈 지양</li>
+          <li>폭력은 수단 / 목적 아님</li>
+          <li>VIP / 팀원 위협 시 판단 가속</li>
+        </ul>
+      </div>
+
+      <div class="sidebar-block">
+        <h3>File Control</h3>
+        <p>배포: INTERNAL ONLY<br />첨부: 없음 · 면담 기록 별도</p>
+        <div class="file-stamp">PAC-HUDSON-████<br />REV 2026-05</div>
+        <p class="sig-line">AUTHORIZED BY: ________</p>
+      </div>
+
+    </aside>
+
+    <div class="main">
+
+      <section>
+        <h2>Core Competencies</h2>
+        <div class="skills">
+          <span>현장 지휘</span>
+          <span>분대 / 소대급 지휘</span>
+          <span>해상 대테러</span>
+          <span>요인 회수</span>
+          <span>기업 보안 컨설팅</span>
+          <span>위기 대응</span>
+          <span>정보 / 환경 정찰</span>
+          <span>VIP / 자산 호위</span>
+          <span>그레이존 협상</span>
+          <span>한 / 영 브리핑</span>
+          <span>저유혈 목표 달성</span>
+        </div>
+        <p class="eval">
+          <strong>내부 코멘트:</strong> <q>영웅 놀이를 하는 것 같지는 않고, 그냥 순수하게 미친 새끼 같다.</q>
+          — 동료 평가 요약
+        </p>
+      </section>
+
+      <section>
+        <h2>Operational Profile</h2>
+        <table class="data">
+          <tr>
+            <th>콜사인</th>
+            <td><strong>HUDSON</strong></td>
+          </tr>
+          <tr>
+            <th>지휘 스타일</th>
+            <td>단문 지시, 출입 / 엄폐 / 퇴로 / 팀원 위치 상시 계산<br>최소한의 감정 표현</td>
+          </tr>
+          <tr>
+            <th>대인</th>
+            <td>정중하고 건조한 어조. 신뢰가 형성되기 전에는 반말을 하지 않음</td>
+          </tr>
+          <tr>
+            <th>스트레스 반응</th>
+            <td>분노 시 고요, 영어 혼용, 동작 가속<br>소리 지르는 유형 아님</td>
+          </tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>Restrictions &amp; Flags</h2>
+        <div class="flag-group">
+          <div class="flag">
+            <div>
+              <strong>해상 임무 배제</strong><br />수중·수면 이하 침수 유발 자극에 대한 신체 반응(심박·호흡 이상) 보고됨. 해상 투입 자진 거부.
+            </div>
+          </div>
+          <div class="flag flag--note">
+            <div>
+              <strong>비고:</strong> 연안·항만에서 바다 시야 확보 시 안정 반응 관측 — 의료·인사 기록 별도. 사유 미기재.
+            </div>
+          </div>
+        </div>
+        <table class="data" style="margin-top:0.75rem;">
+          <tr>
+            <th>금기 질의</th>
+            <td>작전 사고 세부, 팀원 사망 경위, 정보 유출 조사 결과 <br> — 강제 질의 시 협조 저하</td>
+          </tr>
+          <tr>
+            <th>권고 배치</th>
+            <td>도시·항만·시설 보안, 철수·호위, 정찰·브리핑. <em>장기 주둔·대기 업무 비권장</em></td>
+          </tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>Disposition (요약)</h2>
+        <p class="summary" style="border-left-color:var(--muted);">
+          냉혈한은 아니지만, 감정을 숨기는 데 능숙한 PMC 요원. 관찰력과 책임감이 매우 높다.<br>
+          자기 연민에 오래 머무르지 않으며, 스스로 느낄 때 불편하면 움직인다.<br>
+          쉽게 신뢰하지 않으나, 신뢰 후에는 행동으로 스스로의 신뢰를 표현하고 책임을 진다.<br>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <footer class="doc-footer">
+    <span class="footer-left">본 문서는 P.A.C 내부 용도입니다. 무단 복제·유출 금지.</span>
+    <span class="footer-page" aria-label="페이지">2 / 2</span>
+    <span class="footer-right">VERIFIED · OPS DIVISION</span>
+  </footer>
+
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
